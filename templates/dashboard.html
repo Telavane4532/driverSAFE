@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>DriveSafe AI</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Rajdhani:wght@300;500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:     #080c14;
+  --panel:  #0d1421;
+  --border: #1a2a40;
+  --safe:   #00e676;
+  --warn:   #ffd600;
+  --danger: #ff1744;
+  --accent: #00b4d8;
+  --text:   #cdd6f4;
+  --dim:    #6272a4;
+  --mono:   'Space Mono', monospace;
+  --head:   'Rajdhani', sans-serif;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--head);
+  min-height: 100vh;
+}
+
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background: repeating-linear-gradient(
+    0deg, transparent, transparent 2px,
+    rgba(0,180,216,0.015) 2px, rgba(0,180,216,0.015) 4px
+  );
+  pointer-events: none; z-index: 0;
+}
+
+/* ── Header ── */
+header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 32px;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(90deg, #0d1421, #0a1628);
+  position: relative; z-index: 10;
+}
+.logo { display: flex; align-items: center; gap: 12px; }
+.logo-icon {
+  width: 40px; height: 40px;
+  background: linear-gradient(135deg, var(--accent), var(--safe));
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px;
+}
+.logo-text { font-size: 24px; font-weight: 700; letter-spacing: 3px; }
+.logo-sub  { font-family: var(--mono); font-size: 9px; color: var(--dim); letter-spacing: 3px; }
+
+#status-badge {
+  font-family: var(--mono); font-size: 13px; letter-spacing: 2px;
+  padding: 8px 20px; border-radius: 6px;
+  border: 1px solid currentColor;
+  transition: all .3s;
+}
+.SAFE    { color: var(--safe);   background: rgba(0,230,118,.08); }
+.WARNING { color: var(--warn);   background: rgba(255,214,0,.08); }
+.DANGER  { color: var(--danger); background: rgba(255,23,68,.12);
+           animation: pulse .6s ease infinite alternate; }
+@keyframes pulse { to { box-shadow: 0 0 20px var(--danger); } }
+
+#live-dot {
+  font-family: var(--mono); font-size: 11px; color: var(--safe);
+  display: flex; align-items: center; gap: 6px;
+}
+#live-dot::before {
+  content: '●';
+  animation: blink 1s step-end infinite;
+}
+@keyframes blink { 50%{ opacity:0 } }
+
+/* ── Layout ── */
+main {
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  gap: 16px;
+  padding: 16px 24px;
+  max-width: 1400px; margin: 0 auto;
+  position: relative; z-index: 1;
+}
+
+/* ── Camera ── */
+.camera-wrap {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  position: relative;
+}
+.cam-label {
+  position: absolute; top: 12px; left: 12px;
+  font-family: var(--mono); font-size: 10px; letter-spacing: 2px;
+  color: var(--dim); background: rgba(8,12,20,.85);
+  padding: 4px 10px; border-radius: 4px; z-index: 2;
+}
+#cam { width: 100%; display: block; min-height: 380px; background: #000; }
+
+/* ── Right Panel ── */
+.right-panel { display: flex; flex-direction: column; gap: 12px; }
+
+/* ── Risk Gauge ── */
+.gauge-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 20px;
+  text-align: center;
+}
+.gauge-title {
+  font-family: var(--mono); font-size: 10px;
+  letter-spacing: 3px; color: var(--dim); margin-bottom: 16px;
+}
+.gauge-wrap { position: relative; width: 160px; margin: 0 auto; }
+#gauge-svg { width: 100%; }
+.gauge-value {
+  position: absolute; top: 55%; left: 50%;
+  transform: translate(-50%, -50%);
+  font-family: var(--mono); font-size: 32px; font-weight: 700;
+}
+.gauge-label {
+  font-family: var(--mono); font-size: 10px;
+  letter-spacing: 2px; color: var(--dim); margin-top: 8px;
+}
+
+/* ── Stat Cards ── */
+.stats-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+}
+.stat-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px;
+}
+.stat-label {
+  font-family: var(--mono); font-size: 9px;
+  letter-spacing: 2px; color: var(--dim); margin-bottom: 6px;
+}
+.stat-value {
+  font-family: var(--mono); font-size: 26px; font-weight: 700;
+  color: var(--accent);
+}
+.stat-sub {
+  font-size: 11px; color: var(--dim); margin-top: 2px;
+}
+
+/* ── Alert Log ── */
+.log-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px;
+  flex: 1;
+}
+.log-title {
+  font-family: var(--mono); font-size: 10px;
+  letter-spacing: 3px; color: var(--dim); margin-bottom: 12px;
+}
+#alert-log { display: flex; flex-direction: column; gap: 6px; }
+.log-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 10px; border-radius: 6px;
+  background: rgba(255,255,255,.03);
+  font-family: var(--mono); font-size: 11px;
+  animation: fadeIn .3s ease;
+}
+@keyframes fadeIn { from { opacity:0; transform: translateX(10px); } }
+.log-time { color: var(--dim); min-width: 55px; }
+.log-DANGER  { border-left: 3px solid var(--danger); }
+.log-WARNING { border-left: 3px solid var(--warn); }
+
+/* ── Bottom Charts ── */
+.charts-row {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.chart-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px;
+}
+.chart-title {
+  font-family: var(--mono); font-size: 10px;
+  letter-spacing: 3px; color: var(--dim); margin-bottom: 12px;
+}
+canvas { width: 100% !important; }
+
+/* ── Footer ── */
+footer {
+  text-align: center; padding: 16px;
+  font-family: var(--mono); font-size: 10px;
+  color: var(--dim); letter-spacing: 2px;
+  border-top: 1px solid var(--border);
+  position: relative; z-index: 1;
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">🚗</div>
+    <div>
+      <div class="logo-text">DRIVESAFE AI</div>
+      <div class="logo-sub">DROWSINESS DETECTION SYSTEM</div>
+    </div>
+  </div>
+  <div id="live-dot">LIVE</div>
+  <div id="status-badge" class="SAFE">● SAFE</div>
+</header>
+
+<main>
+
+  <!-- Camera Feed -->
+  <div class="camera-wrap" id="cam-wrap">
+    <div class="cam-label">📷 LIVE CAMERA FEED</div>
+    <img id="cam" src="/video_feed" alt="camera"/>
+  </div>
+
+  <!-- Right Panel -->
+  <div class="right-panel">
+
+    <!-- Risk Gauge -->
+    <div class="gauge-card">
+      <div class="gauge-title">DROWSINESS RISK SCORE</div>
+      <div class="gauge-wrap">
+        <svg id="gauge-svg" viewBox="0 0 160 100">
+          <!-- Background arc -->
+          <path d="M 20 90 A 60 60 0 0 1 140 90"
+            fill="none" stroke="#1a2a40" stroke-width="12" stroke-linecap="round"/>
+          <!-- Foreground arc -->
+          <path id="gauge-arc" d="M 20 90 A 60 60 0 0 1 140 90"
+            fill="none" stroke="#00e676" stroke-width="12"
+            stroke-linecap="round"
+            stroke-dasharray="188.5"
+            stroke-dashoffset="188.5"
+            style="transition: all .5s ease"/>
+        </svg>
+        <div class="gauge-value" id="gauge-num" style="color:var(--safe)">0%</div>
+      </div>
+      <div class="gauge-label" id="gauge-status">ALL CLEAR</div>
+    </div>
+
+    <!-- Stats Grid -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">BLINKS</div>
+        <div class="stat-value" id="stat-blinks">0</div>
+        <div class="stat-sub">detected</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">YAWNS</div>
+        <div class="stat-value" id="stat-yawns">0</div>
+        <div class="stat-sub">detected</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">SESSION</div>
+        <div class="stat-value" id="stat-time" style="font-size:20px">00:00</div>
+        <div class="stat-sub">duration</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">FPS</div>
+        <div class="stat-value" id="stat-fps">0</div>
+        <div class="stat-sub">frames/sec</div>
+      </div>
+    </div>
+
+    <!-- Alert Log -->
+    <div class="log-card">
+      <div class="log-title">⚡ ALERT LOG</div>
+      <div id="alert-log">
+        <div style="font-family:var(--mono);font-size:11px;color:var(--dim)">No alerts yet...</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Bottom Charts -->
+  <div class="charts-row">
+    <div class="chart-card">
+      <div class="chart-title">📈 RISK SCORE HISTORY</div>
+      <canvas id="risk-chart" height="100"></canvas>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">👁️ EYE STATUS TIMELINE</div>
+      <canvas id="eye-chart" height="100"></canvas>
+    </div>
+  </div>
+
+</main>
+
+<footer>DRIVESAFE AI &nbsp;•&nbsp; STAY ALERT STAY SAFE &nbsp;•&nbsp; v2.0</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// ── Chart Setup
+const chartOpts = (label, color) => ({
+  type: 'line',
+  data: {
+    labels: Array(30).fill(''),
+    datasets: [{
+      label,
+      data: Array(30).fill(0),
+      borderColor: color,
+      backgroundColor: color + '22',
+      borderWidth: 2,
+      pointRadius: 0,
+      fill: true,
+      tension: 0.4
+    }]
+  },
+  options: {
+    animation: false,
+    responsive: true,
+    scales: {
+      x: { display: false },
+      y: {
+        min: 0, max: 100,
+        grid: { color: '#1a2a40' },
+        ticks: { color: '#6272a4', font: { family: 'Space Mono', size: 10 } }
+      }
+    },
+    plugins: { legend: { display: false } }
+  }
+});
+
+const riskChart = new Chart(
+  document.getElementById('risk-chart'),
+  chartOpts('Risk Score', '#ff1744')
+);
+const eyeChart = new Chart(
+  document.getElementById('eye-chart'),
+  chartOpts('Eyes Open', '#00b4d8')
+);
+
+// ── Gauge
+function updateGauge(score) {
+  const arc    = document.getElementById('gauge-arc');
+  const num    = document.getElementById('gauge-num');
+  const status = document.getElementById('gauge-status');
+  const total  = 188.5;
+  const offset = total - (score / 100) * total;
+
+  let color, label;
+  if (score < 30)      { color = '#00e676'; label = 'ALL CLEAR'; }
+  else if (score < 60) { color = '#ffd600'; label = 'STAY ALERT'; }
+  else                 { color = '#ff1744'; label = 'DANGER ZONE'; }
+
+  arc.style.stroke             = color;
+  arc.style.strokeDashoffset   = offset;
+  num.textContent              = score + '%';
+  num.style.color              = color;
+  status.textContent           = label;
+  status.style.color           = color;
+}
+
+// ── Push chart data
+function pushChart(chart, value) {
+  chart.data.datasets[0].data.push(value);
+  chart.data.datasets[0].data.shift();
+  chart.data.labels.push('');
+  chart.data.labels.shift();
+  chart.update();
+}
+
+// ── Poll API
+async function poll() {
+  try {
+    const res  = await fetch('/api/stats');
+    const data = await res.json();
+
+    // Status badge
+    const badge = document.getElementById('status-badge');
+    badge.textContent = '● ' + data.alert_level;
+    badge.className   = data.alert_level;
+
+    // Camera border glow
+    const wrap = document.getElementById('cam-wrap');
+    wrap.style.boxShadow =
+      data.alert_level === 'DANGER'  ? '0 0 30px rgba(255,23,68,.5)'  :
+      data.alert_level === 'WARNING' ? '0 0 20px rgba(255,214,0,.3)'  :
+      'none';
+
+    // Gauge
+    updateGauge(data.risk_score);
+
+    // Stats
+    document.getElementById('stat-blinks').textContent = data.total_blinks;
+    document.getElementById('stat-yawns').textContent  = data.total_yawns;
+    document.getElementById('stat-time').textContent   = data.session_time;
+    document.getElementById('stat-fps').textContent    = data.fps;
+
+    // Charts
+    pushChart(riskChart, data.risk_score);
+    pushChart(eyeChart,  data.eyes_visible * 50);
+
+    // Alert log
+    if (data.alert_log.length > 0) {
+      const log = document.getElementById('alert-log');
+      log.innerHTML = data.alert_log.reverse().map(a => `
+        <div class="log-item log-${a.msg.includes('Wake') ? 'DANGER' : 'WARNING'}">
+          <span class="log-time">${a.time}</span>
+          <span>${a.msg}</span>
+        </div>
+      `).join('');
+    }
+
+  } catch(e) { console.log('Polling...'); }
+}
+
+setInterval(poll, 500);
+poll();
+</script>
+</body>
+</html>
